@@ -7,6 +7,8 @@ import SeoHead from '@/components/seo/SeoHead';
 import { ProductSkeleton } from '@/components/ui/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import HeroCarousel from '@/components/HeroCarousel';
+
 export default function ShopPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [filter, setFilter] = useState<Category | 'All'>('All');
@@ -38,14 +40,7 @@ export default function ShopPage() {
                 description="Browse our collection of custom designs, skincare, and accessories."
             />
 
-            {/* Hero Section */}
-            <div className="bg-gradient-to-r from-pink-600 to-rose-500 text-white py-20 text-center mb-12 shadow-inner relative overflow-hidden">
-                <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
-                <div className="relative z-10 px-4">
-                    <h1 className="text-5xl md:text-6xl font-extrabold mb-4 tracking-tight drop-shadow-lg">Abbey Collections</h1>
-                    <p className="text-pink-100 text-xl font-light max-w-2xl mx-auto">Luxury Sewing Designs • Premium Cosmetics • Essential Accessories</p>
-                </div>
-            </div>
+            <HeroCarousel />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Filters */}

@@ -60,7 +60,7 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
             <Navbar />
-            <main className="flex-grow">
+            <main className="flex-grow pt-20">
               <AnimatedRoutes />
             </main>
 

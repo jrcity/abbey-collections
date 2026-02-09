@@ -6,7 +6,7 @@ export default function Navbar() {
     const { totalItems } = useCart();
 
     return (
-        <nav className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <nav className="fixed top-0 left-0 right-0 bg-white/30 backdrop-blur-xl z-50 border-b border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-20 items-center">
                     {/* Logo */}

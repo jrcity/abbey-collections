@@ -4,10 +4,11 @@ import { db, auth, googleProvider } from '@/configs/firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { Category, Product, Inquiry } from '@/types';
 import SeoHead from '@/components/seo/SeoHead';
-import { ShoppingBag, User as UserIcon, Package, MessageSquare, BarChart as BarChartIcon, Plus, Pencil, Trash, TrendingUp, DollarSign } from 'lucide-react';
+import { ShoppingBag, User as UserIcon, Package, MessageSquare, BarChart as BarChartIcon, Plus, Pencil, Trash, TrendingUp, DollarSign, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileInput, MobileTextArea, MobileSelect, MobileButton, MobileFileInput, MobileToggle } from '@/components/ui/CustomUI';
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { seedDatabase } from '@/utils/seed';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     LineChart, Line, Cell
@@ -169,6 +170,17 @@ export default function AdminUploadPage() {
         { name: 'Completed Sales', value: inquiries.filter(i => i.status === 'sold').length, color: '#10b981' }
     ];
 
+    const handleSeed = async () => {
+        showConfirm("This will add demo products to your shop. Continue?", async () => {
+            try {
+                const res = await seedDatabase();
+                showAlert(`Successfully added ${res.count} demo products!`, "success");
+            } catch (error) {
+                showAlert("Seeding failed.", "error");
+            }
+        });
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-pink-50">
@@ -213,7 +225,7 @@ export default function AdminUploadPage() {
             <SeoHead title="Admin Dashboard" description="Manage your store" />
 
             {/* Tab Bar */}
-            <div className="bg-white sticky top-0 z-40 shadow-sm border-b border-gray-100 mb-8 overflow-x-auto no-scrollbar">
+            <div className="bg-white sticky top-20 z-40 shadow-sm border-b border-gray-100 mb-8 overflow-x-auto no-scrollbar">
                 <div className="max-w-4xl mx-auto flex">
                     {[
                         { id: 'inventory', icon: Package, label: 'Inventory' },
@@ -238,6 +250,15 @@ export default function AdminUploadPage() {
                 <AnimatePresence mode="wait">
                     {activeTab === 'inventory' && (
                         <motion.div key="inv" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid gap-4">
+                            <div className="flex justify-end mb-4">
+                                <button
+                                    onClick={handleSeed}
+                                    className="flex items-center gap-2 px-6 py-3 bg-pink-50 text-pink-600 font-black rounded-2xl hover:bg-pink-100 transition-all text-sm"
+                                >
+                                    <Database size={16} />
+                                    Seed Demo Data
+                                </button>
+                            </div>
                             {products.length === 0 ? (
                                 <div className="text-center py-20 text-gray-400 font-bold">No products yet. Tap "Add" to start.</div>
                             ) : products.map(p => (

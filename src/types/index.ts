@@ -9,6 +9,7 @@ export interface Product {
     imageUrl: string;
     inStock: boolean;
     createdAt: number;
+    updatedAt?: number;
     salesCount?: number; // For analytics
 }
 

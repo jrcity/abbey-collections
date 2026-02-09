@@ -31,7 +31,7 @@ export default function CartPage() {
             });
 
             // 2. Format and Open WhatsApp
-            const phone = "+2349034847432"; // ABBEY'S NUMBER
+            const phone = "+2347018370807"; // ABBEY'S NUMBER
             let message = "Hello Abbey, I'd like to place an order from your website:\n\n";
 
             cart.forEach(item => {

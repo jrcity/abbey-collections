@@ -19,7 +19,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     };
 
     const handleWhatsAppInquiry = () => {
-        const phone = "+2349034847432"; // REPLACE WITH ABBEY'S NUMBER
+        const phone = "+2347018370807"; // REPLACE WITH ABBEY'S NUMBER
         const message = `Hello Abbey, I'm interested in "${product.name}" (₦${product.price.toLocaleString()}). Is it still available?`;
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
     };
