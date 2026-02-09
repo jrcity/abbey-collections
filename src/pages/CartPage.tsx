@@ -1,23 +1,52 @@
 import { useCart } from '@/context/CartContext';
+import { useUI } from '@/context/UIContext';
 import { Trash2, MessageCircle, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { db } from '@/configs/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import SeoHead from '@/components/seo/SeoHead';
 import { MobileButton } from '@/components/ui/CustomUI';
 
 export default function CartPage() {
     const { cart, removeFromCart, totalPrice, clearCart } = useCart();
+    const { showAlert, showConfirm } = useUI();
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleCheckout = () => {
-        const phone = "2348000000000"; // ABBEY'S NUMBER
-        let message = "Hello Abbey, I'd like to place an order from your website:\n\n";
+    const handleCheckout = async () => {
+        setIsProcessing(true);
+        try {
+            // 1. Save Inquiry to Firestore
+            await addDoc(collection(db, "inquiries"), {
+                items: cart.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    imageUrl: item.imageUrl
+                })),
+                totalPrice,
+                status: 'pending',
+                createdAt: Date.now()
+            });
 
-        cart.forEach(item => {
-            message += `• ${item.quantity}x ${item.name} (₦${(item.price * item.quantity).toLocaleString()})\n`;
-        });
+            // 2. Format and Open WhatsApp
+            const phone = "+2349034847432"; // ABBEY'S NUMBER
+            let message = "Hello Abbey, I'd like to place an order from your website:\n\n";
 
-        message += `\n*Total: ₦${totalPrice.toLocaleString()}*\n\nPlease let me know how to proceed with payment.`;
+            cart.forEach(item => {
+                message += `• ${item.quantity}x ${item.name} (₦${(item.price * item.quantity).toLocaleString()})\n`;
+            });
 
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+            message += `\n*Total: ₦${totalPrice.toLocaleString()}*\n\nPlease let me know how to proceed with payment.`;
+
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+        } catch (error) {
+            console.error("Inquiry recording failed", error);
+            showAlert("Failed to connect to our server. Please try again.", "error");
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     if (cart.length === 0) {
@@ -48,7 +77,7 @@ export default function CartPage() {
             <div className="flex items-center justify-between mb-10">
                 <h1 className="text-4xl font-black text-gray-900">Your Selection</h1>
                 <button
-                    onClick={clearCart}
+                    onClick={() => showConfirm("Remove all items from your selection?", clearCart)}
                     className="text-gray-400 hover:text-red-500 transition-colors text-sm font-semibold flex items-center gap-1"
                 >
                     <Trash2 size={16} />
@@ -92,10 +121,17 @@ export default function CartPage() {
                 <MobileButton
                     variant="success"
                     onClick={handleCheckout}
+                    disabled={isProcessing}
                     className="w-full text-xl py-5"
                 >
-                    <MessageCircle size={28} strokeWidth={2.5} />
-                    Complete Order on WhatsApp
+                    {isProcessing ? (
+                        <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                        <>
+                            <MessageCircle size={28} strokeWidth={2.5} />
+                            Complete Order on WhatsApp
+                        </>
+                    )}
                 </MobileButton>
                 <p className="text-center mt-6 text-gray-400 text-sm italic font-medium">
                     This will structured your order and open Abbey's WhatsApp chat.

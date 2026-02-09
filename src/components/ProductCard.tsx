@@ -1,6 +1,7 @@
 import { Product } from '@/types';
 import { MessageCircle, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useUI } from '@/context/UIContext';
 import { motion } from 'framer-motion';
 import { MobileButton } from '@/components/ui/CustomUI';
 
@@ -10,9 +11,15 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
     const { addToCart } = useCart();
+    const { showAlert } = useUI();
+
+    const handleAddToCart = () => {
+        addToCart(product);
+        showAlert(`${product.name} added to your selection!`, 'success');
+    };
 
     const handleWhatsAppInquiry = () => {
-        const phone = "2348000000000"; // REPLACE WITH ABBEY'S NUMBER
+        const phone = "+2349034847432"; // REPLACE WITH ABBEY'S NUMBER
         const message = `Hello Abbey, I'm interested in "${product.name}" (₦${product.price.toLocaleString()}). Is it still available?`;
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
     };
@@ -63,7 +70,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {/* Actions */}
                 <div className="flex flex-col gap-3">
                     <MobileButton
-                        onClick={() => addToCart(product)}
+                        onClick={handleAddToCart}
                         disabled={!product.inStock}
                         className="w-full"
                     >

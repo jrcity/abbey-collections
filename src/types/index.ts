@@ -8,7 +8,22 @@ export interface Product {
     description: string;
     imageUrl: string;
     inStock: boolean;
-    createdAt: number; // Timestamp for sorting
+    createdAt: number;
+    salesCount?: number; // For analytics
+}
+
+export interface Inquiry {
+    id: string;
+    items: {
+        id: string;
+        name: string;
+        price: number;
+        quantity: number;
+        imageUrl: string;
+    }[];
+    totalPrice: number;
+    status: 'pending' | 'sold' | 'cancelled';
+    createdAt: number;
 }
 
 export interface UserUser {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, HTMLMotionProps, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Upload } from 'lucide-react';
+import { ChevronDown, Upload, CheckCircle, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
 
 interface MobileInputProps extends Omit<HTMLMotionProps<'input'>, 'onAnimationStart' | 'onDragStart' | 'onDragEnd' | 'onDrag' | 'ref'> {
     label?: string;
@@ -175,6 +175,119 @@ export const MobileFileInput: React.FC<MobileFileInputProps> = ({ label, onFileS
                         onFileSelect(file);
                     }}
                 />
+            </motion.div>
+        </div>
+    );
+};
+interface MobileToggleProps {
+    label: string;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    className?: string;
+}
+
+export const MobileToggle: React.FC<MobileToggleProps> = ({ label, checked, onChange, className = '' }) => {
+    return (
+        <label className={`flex items-center justify-between p-4 bg-white border-2 border-gray-100 rounded-[1.5rem] cursor-pointer transition-all ${checked ? 'border-pink-500 bg-pink-50/30' : ''} ${className}`}>
+            <span className="font-bold text-gray-900">{label}</span>
+            <motion.div
+                animate={{ backgroundColor: checked ? '#db2777' : '#e5e7eb' }}
+                onClick={() => onChange(!checked)}
+                className="w-14 h-8 rounded-full p-1 relative flex items-center"
+            >
+                <motion.div
+                    animate={{ x: checked ? 24 : 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="w-6 h-6 bg-white rounded-full shadow-md"
+                />
+            </motion.div>
+        </label>
+    );
+};
+
+// --- Alert & Confirmation Components ---
+
+export type AlertType = 'success' | 'error' | 'warning' | 'info';
+
+interface MobileAlertProps {
+    type: AlertType;
+    message: string;
+    onClose: () => void;
+}
+
+export const MobileAlert: React.FC<MobileAlertProps> = ({ type, message, onClose }) => {
+    const configs = {
+        success: { icon: CheckCircle, bg: 'bg-green-600', shadow: 'shadow-green-200' },
+        error: { icon: AlertCircle, bg: 'bg-red-600', shadow: 'shadow-red-200' },
+        warning: { icon: AlertTriangle, bg: 'bg-amber-500', shadow: 'shadow-amber-200' },
+        info: { icon: Info, bg: 'bg-blue-600', shadow: 'shadow-blue-200' }
+    };
+
+    const config = configs[type];
+    const Icon = config.icon;
+
+    return (
+        <motion.div
+            initial={{ y: -100, opacity: 0, scale: 0.9 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: -100, opacity: 0, scale: 0.9 }}
+            className={`fixed top-6 left-4 right-4 z-[100] flex items-center gap-4 ${config.bg} p-5 rounded-[2rem] shadow-2xl ${config.shadow} text-white`}
+        >
+            <div className="bg-white/20 p-2 rounded-xl">
+                <Icon size={24} />
+            </div>
+            <p className="flex-grow font-black text-sm">{message}</p>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X size={20} />
+            </button>
+        </motion.div>
+    );
+};
+
+interface MobileConfirmProps {
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+export const MobileConfirm: React.FC<MobileConfirmProps> = ({ message, onConfirm, onCancel }) => {
+    return (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={onCancel}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            />
+
+            {/* Confirmation Sheet */}
+            <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="relative w-full max-w-sm bg-white rounded-[3rem] p-8 pb-10 shadow-2xl overflow-hidden"
+            >
+                <div className="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-8" />
+
+                <div className="text-center mb-10">
+                    <div className="inline-flex p-4 bg-pink-50 rounded-2xl text-pink-600 mb-4">
+                        <AlertCircle size={32} />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-2">Are you sure?</h3>
+                    <p className="text-gray-500 font-bold px-4">{message}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <MobileButton variant="secondary" onClick={onCancel} className="text-lg">
+                        Cancel
+                    </MobileButton>
+                    <MobileButton variant="danger" onClick={onConfirm} className="text-lg bg-red-600 text-white shadow-red-100">
+                        Confirm
+                    </MobileButton>
+                </div>
             </motion.div>
         </div>
     );
