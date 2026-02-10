@@ -44,21 +44,23 @@ export default function ShopPage() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Filters */}
-                <div className="flex justify-center mb-16 overflow-x-auto pb-4 no-scrollbar">
-                    <div className="flex bg-white p-1.5 rounded-[2.5rem] shadow-sm border border-gray-100 gap-1">
-                        {['All', 'Fashion & Design', 'Cosmetics & Jewelry', 'Pack Accessories', 'Skin Care'].map((cat) => (
-                            <motion.button
-                                key={cat}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => setFilter(cat as any)}
-                                className={`px-6 py-3 rounded-[2rem] text-sm font-black transition-all duration-300 whitespace-nowrap
-                                    ${filter === cat
-                                        ? 'bg-pink-600 text-white shadow-lg shadow-pink-100'
-                                        : 'bg-transparent text-gray-400 hover:text-pink-600'}`}
-                            >
-                                {cat}
-                            </motion.button>
-                        ))}
+                <div className="mb-16 overflow-x-auto no-scrollbar scroll-smooth">
+                    <div className="flex justify-start md:justify-center px-4">
+                        <div className="flex bg-white p-1.5 rounded-[2.5rem] shadow-sm border border-gray-100 gap-1 min-w-max">
+                            {['All', 'Fashion & Design', 'Cosmetics & Jewelry', 'Pack Accessories', 'Skin Care'].map((cat) => (
+                                <motion.button
+                                    key={cat}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setFilter(cat as any)}
+                                    className={`px-6 py-3 rounded-[2rem] text-sm font-black transition-all duration-300 whitespace-nowrap
+                                        ${filter === cat
+                                            ? 'bg-pink-600 text-white shadow-lg shadow-pink-100'
+                                            : 'bg-transparent text-gray-400 hover:text-pink-600'}`}
+                                >
+                                    {cat}
+                                </motion.button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
