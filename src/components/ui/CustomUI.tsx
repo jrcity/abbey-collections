@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, HTMLMotionProps, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Upload, CheckCircle, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
+import { ChevronDown, Upload, CheckCircle, AlertTriangle, AlertCircle, Info, X, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MobileInputProps extends Omit<HTMLMotionProps<'input'>, 'onAnimationStart' | 'onDragStart' | 'onDragEnd' | 'onDrag' | 'ref'> {
     label?: string;
@@ -172,10 +172,118 @@ export const MobileFileInput: React.FC<MobileFileInputProps> = ({ label, onFileS
                     onChange={(e) => {
                         const file = e.target.files?.[0] || null;
                         setFileName(file ? file.name : null);
-                        onFileSelect(file);
+                        if (onFileSelect) onFileSelect(file);
                     }}
                 />
             </motion.div>
+        </div>
+    );
+};
+
+interface MobileMultiFileInputProps extends Omit<HTMLMotionProps<'div'>, 'onAnimationStart' | 'onDragStart' | 'onDragEnd' | 'onDrag' | 'ref' | 'onChange'> {
+    label?: string;
+    onFilesSelect: (files: File[]) => void;
+    currentImages?: string[];
+    onRemoveCurrentImage?: (url: string) => void;
+    accept?: string;
+    maxFiles?: number;
+}
+
+export const MobileMultiFileInput: React.FC<MobileMultiFileInputProps> = ({
+    label, onFilesSelect, currentImages = [], onRemoveCurrentImage, accept, maxFiles = 7
+}) => {
+    const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
+    const [previews, setPreviews] = React.useState<string[]>([]);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const totalImages = currentImages.length + selectedFiles.length + files.length;
+        if (totalImages > maxFiles) {
+            alert(`You can only upload a maximum of ${maxFiles} images.`);
+            return;
+        }
+
+        const newFiles = [...selectedFiles, ...files];
+        setSelectedFiles(newFiles);
+        onFilesSelect(newFiles);
+
+        // Generate previews
+        const newPreviews = files.map(file => URL.createObjectURL(file));
+        setPreviews([...previews, ...newPreviews]);
+    };
+
+    const removeFile = (index: number) => {
+        const newFiles = selectedFiles.filter((_, i) => i !== index);
+        const newPreviews = previews.filter((_, i) => i !== index);
+
+        // Revoke the URL to avoid memory leaks
+        URL.revokeObjectURL(previews[index]);
+
+        setSelectedFiles(newFiles);
+        setPreviews(newPreviews);
+        onFilesSelect(newFiles);
+    };
+
+    return (
+        <div className="w-full">
+            {label && <label className="block text-[11px] font-black uppercase tracking-tighter text-gray-400 mb-1.5 ml-2">{label}</label>}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                {/* Existing Images (for editing) */}
+                {currentImages.map((url, idx) => (
+                    <div key={`curr-${idx}`} className="relative aspect-square rounded-[1.5rem] overflow-hidden border-2 border-gray-100 group">
+                        <img src={url} className="w-full h-full object-cover" alt="" />
+                        <button
+                            type="button"
+                            onClick={() => onRemoveCurrentImage?.(url)}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <X size={14} />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 py-1 text-[8px] text-white text-center font-bold uppercase">Current</div>
+                    </div>
+                ))}
+
+                {/* New Previews */}
+                {previews.map((url, idx) => (
+                    <div key={`new-${idx}`} className="relative aspect-square rounded-[1.5rem] overflow-hidden border-2 border-pink-100 group">
+                        <img src={url} className="w-full h-full object-cover" alt="" />
+                        <button
+                            type="button"
+                            onClick={() => removeFile(idx)}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <X size={14} />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-pink-600/80 py-1 text-[8px] text-white text-center font-bold uppercase">New</div>
+                    </div>
+                ))}
+
+                {/* Upload Button */}
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square bg-gray-50 border-2 border-dashed border-gray-200 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-pink-300 hover:bg-pink-50 transition-all"
+                >
+                    <div className="p-3 bg-pink-100 rounded-xl text-pink-600">
+                        <Plus size={20} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-gray-400">Add More</span>
+                </motion.div>
+            </div>
+
+            <input
+                type="file"
+                ref={fileInputRef}
+                accept={accept}
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+            />
         </div>
     );
 };
@@ -289,6 +397,60 @@ export const MobileConfirm: React.FC<MobileConfirmProps> = ({ message, onConfirm
                     </MobileButton>
                 </div>
             </motion.div>
+        </div>
+    );
+};
+
+interface MobilePaginationProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+}
+
+export const MobilePagination: React.FC<MobilePaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className="flex items-center justify-center gap-2 mt-12 mb-8">
+            <motion.button
+                whileTap={{ scale: 0.9 }}
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+                className={`p-4 rounded-2xl transition-all shadow-sm flex items-center justify-center
+                    ${currentPage === 1
+                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        : 'bg-white text-gray-900 hover:text-pink-600 border border-gray-100'}`}
+            >
+                <ChevronLeft size={20} />
+            </motion.button>
+
+            <div className="flex gap-1 overflow-x-auto no-scrollbar px-2 py-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <motion.button
+                        key={page}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => onPageChange(page)}
+                        className={`min-w-[48px] h-[48px] rounded-2xl text-sm font-black transition-all
+                            ${currentPage === page
+                                ? 'bg-pink-600 text-white shadow-lg shadow-pink-100'
+                                : 'bg-white text-gray-400 hover:text-pink-600 border border-gray-100 shadow-sm'}`}
+                    >
+                        {page}
+                    </motion.button>
+                ))}
+            </div>
+
+            <motion.button
+                whileTap={{ scale: 0.9 }}
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
+                className={`p-4 rounded-2xl transition-all shadow-sm flex items-center justify-center
+                    ${currentPage === totalPages
+                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        : 'bg-white text-gray-900 hover:text-pink-600 border border-gray-100'}`}
+            >
+                <ChevronRight size={20} />
+            </motion.button>
         </div>
     );
 };

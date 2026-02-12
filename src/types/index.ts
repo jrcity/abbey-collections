@@ -7,6 +7,7 @@ export interface Product {
     category: Category;
     description: string;
     imageUrl: string;
+    images?: string[]; // Multiple images support
     inStock: boolean;
     createdAt: number;
     updatedAt?: number;

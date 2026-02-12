@@ -41,6 +41,10 @@ export default function CartPage() {
             message += `\n*Total: ₦${totalPrice.toLocaleString()}*\n\nPlease let me know how to proceed with payment.`;
 
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+
+            // 3. Clear Cart
+            clearCart();
+            showAlert("Order sent! Your cart has been cleared.", "success");
         } catch (error) {
             console.error("Inquiry recording failed", error);
             showAlert("Failed to connect to our server. Please try again.", "error");

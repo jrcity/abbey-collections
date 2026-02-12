@@ -6,7 +6,8 @@ import { Category, Product, Inquiry } from '@/types';
 import SeoHead from '@/components/seo/SeoHead';
 import { ShoppingBag, User as UserIcon, Package, MessageSquare, BarChart as BarChartIcon, Plus, Pencil, Trash, TrendingUp, DollarSign, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MobileInput, MobileTextArea, MobileSelect, MobileButton, MobileFileInput, MobileToggle } from '@/components/ui/CustomUI';
+import { MobileInput, MobileTextArea, MobileSelect, MobileButton, MobileMultiFileInput, MobileToggle, MobilePagination } from '@/components/ui/CustomUI';
+import ProductModal from '@/components/ProductModal';
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { seedDatabase } from '@/utils/seed';
 import {
@@ -32,7 +33,12 @@ export default function AdminUploadPage() {
     const [category, setCategory] = useState<Category>('Fashion & Design');
     const [desc, setDesc] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [existingImages, setExistingImages] = useState<string[]>([]);
     const [inStock, setInStock] = useState(true);
+    const [showPreview, setShowPreview] = useState(false);
+    const [invPage, setInvPage] = useState(1);
+    const invPerPage = 10;
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -68,15 +74,55 @@ export default function AdminUploadPage() {
         }
     };
 
+    const validateForm = () => {
+        if (!name.trim()) return "Product Name is required.";
+        if (!price || isNaN(Number(price)) || Number(price) <= 0) return "Valid Price is required.";
+        if (!desc.trim()) return "Description is required.";
+
+        const totalImages = existingImages.length + imageFiles.length + (imageFile ? 1 : 0);
+        if (totalImages === 0) return "At least one image is required.";
+        if (totalImages > 7) return "Maximum 7 images allowed.";
+
+        return null;
+    };
+
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
-        if (!editingProduct && !imageFile) return;
+
+        const error = validateForm();
+        if (error) {
+            showAlert(error, "error");
+            return;
+        }
 
         setUploading(true);
         try {
-            let url = editingProduct?.imageUrl || '';
-            if (imageFile) {
+            let imagesToSave = [...existingImages];
+
+            // Upload new images to Cloudinary
+            if (imageFiles.length > 0) {
+                const uploadPromises = imageFiles.map(async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+
+                    const response = await fetch(
+                        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+                        { method: 'POST', body: formData }
+                    );
+
+                    if (!response.ok) throw new Error('Cloudinary upload failed');
+                    const data = await response.json();
+                    return data.secure_url as string;
+                });
+
+                const newUrls = await Promise.all(uploadPromises);
+                imagesToSave = [...imagesToSave, ...newUrls];
+            }
+
+            // Fallback for older products or if using the old MobileFileInput for some reason
+            if (imageFile && imageFiles.length === 0) {
                 const formData = new FormData();
                 formData.append('file', imageFile);
                 formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
@@ -88,15 +134,16 @@ export default function AdminUploadPage() {
 
                 if (!response.ok) throw new Error('Cloudinary upload failed');
                 const data = await response.json();
-                url = data.secure_url;
+                imagesToSave = [data.secure_url, ...imagesToSave];
             }
 
-            const productData = {
-                name,
+            const productData: Partial<Product> = {
+                name: name.trim(),
                 price: Number(price),
                 category,
-                description: desc,
-                imageUrl: url,
+                description: desc.trim(),
+                imageUrl: imagesToSave[0] || '', // Primary image
+                images: imagesToSave, // All images
                 inStock,
                 updatedAt: Date.now()
             };
@@ -120,7 +167,7 @@ export default function AdminUploadPage() {
     };
 
     const resetForm = () => {
-        setName(''); setPrice(''); setDesc(''); setImageFile(null); setEditingProduct(null); setInStock(true);
+        setName(''); setPrice(''); setDesc(''); setImageFile(null); setImageFiles([]); setExistingImages([]); setEditingProduct(null); setInStock(true);
     };
 
     const deleteProduct = (id: string) => {
@@ -137,6 +184,7 @@ export default function AdminUploadPage() {
         setCategory(product.category);
         setDesc(product.description);
         setInStock(product.inStock);
+        setExistingImages(product.images || [product.imageUrl]);
         setActiveTab('add');
     };
 
@@ -259,22 +307,43 @@ export default function AdminUploadPage() {
                                     Seed Demo Data
                                 </button>
                             </div>
+
                             {products.length === 0 ? (
                                 <div className="text-center py-20 text-gray-400 font-bold">No products yet. Tap "Add" to start.</div>
-                            ) : products.map(p => (
-                                <div key={p.id} className="bg-white p-4 rounded-[2rem] shadow-sm flex items-center gap-4 group">
-                                    <img src={p.imageUrl} className="h-20 w-20 rounded-2xl object-cover bg-gray-50" />
-                                    <div className="flex-grow">
-                                        <h4 className="font-black text-gray-900 group-hover:text-pink-600 transition-colors">{p.name}</h4>
-                                        <p className="text-pink-600 font-bold">₦{p.price.toLocaleString()}</p>
-                                        <span className="text-[10px] font-black uppercase text-gray-300 tracking-widest">{p.category}</span>
+                            ) : (
+                                <>
+                                    <div className="grid gap-4">
+                                        {products
+                                            .slice((invPage - 1) * invPerPage, invPage * invPerPage)
+                                            .map(p => (
+                                                <div key={p.id} className="bg-white p-4 rounded-[2rem] shadow-sm flex items-center gap-4 group">
+                                                    <div className="relative">
+                                                        <img src={p.imageUrl} className="h-20 w-20 rounded-2xl object-cover bg-gray-50" />
+                                                        {p.images && p.images.length > 1 && (
+                                                            <div className="absolute -bottom-2 -right-2 bg-pink-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                                                                +{p.images.length - 1}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-grow">
+                                                        <h4 className="font-black text-gray-900 group-hover:text-pink-600 transition-colors">{p.name}</h4>
+                                                        <p className="text-pink-600 font-bold">₦{p.price.toLocaleString()}</p>
+                                                        <span className="text-[10px] font-black uppercase text-gray-300 tracking-widest">{p.category}</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => handleEdit(p)} className="p-3 bg-gray-50 text-gray-400 hover:text-pink-600 rounded-xl transition-all"><Pencil size={18} /></button>
+                                                        <button onClick={() => deleteProduct(p.id)} className="p-3 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash size={18} /></button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => handleEdit(p)} className="p-3 bg-gray-50 text-gray-400 hover:text-pink-600 rounded-xl transition-all"><Pencil size={18} /></button>
-                                        <button onClick={() => deleteProduct(p.id)} className="p-3 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash size={18} /></button>
-                                    </div>
-                                </div>
-                            ))}
+                                    <MobilePagination
+                                        currentPage={invPage}
+                                        totalPages={Math.ceil(products.length / invPerPage)}
+                                        onPageChange={setInvPage}
+                                    />
+                                </>
+                            )}
                         </motion.div>
                     )}
 
@@ -295,7 +364,14 @@ export default function AdminUploadPage() {
                                     />
                                 </div>
                                 <MobileTextArea label="Description" value={desc} onChange={e => setDesc(e.target.value)} required rows={4} />
-                                <MobileFileInput label="Product Image" accept="image/*" onFileSelect={setImageFile} />
+
+                                <MobileMultiFileInput
+                                    label="Product Images"
+                                    accept="image/*"
+                                    onFilesSelect={setImageFiles}
+                                    currentImages={existingImages}
+                                    onRemoveCurrentImage={(url) => setExistingImages(prev => prev.filter(img => img !== url))}
+                                />
 
                                 <MobileToggle
                                     label="Item is currently In-Stock"
@@ -303,15 +379,50 @@ export default function AdminUploadPage() {
                                     onChange={setInStock}
                                 />
 
-                                <div className="flex gap-4 pt-4">
-                                    {editingProduct && (
-                                        <MobileButton variant="secondary" onClick={resetForm} className="flex-1">Cancel</MobileButton>
-                                    )}
-                                    <MobileButton type="submit" disabled={uploading} className="flex-[2] text-xl">
-                                        {uploading ? "Saving..." : (editingProduct ? "Update Product" : "Publish Product")}
-                                    </MobileButton>
+                                <div className="flex flex-col gap-4 pt-4">
+                                    <div className="flex gap-4">
+                                        {editingProduct && (
+                                            <MobileButton variant="secondary" onClick={resetForm} className="flex-1">Cancel</MobileButton>
+                                        )}
+                                        <MobileButton type="submit" disabled={uploading} className="flex-[2] text-xl">
+                                            {uploading ? "Saving..." : (editingProduct ? "Update Product" : "Publish Product")}
+                                        </MobileButton>
+                                    </div>
+
+                                    {/* Preview Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const error = validateForm();
+                                            if (error) {
+                                                showAlert(error, "error");
+                                                return;
+                                            }
+                                            setShowPreview(true);
+                                        }}
+                                        className="w-full py-4 bg-gray-50 text-gray-600 font-black rounded-[1.5rem] border-2 border-gray-100 hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <ShoppingBag size={20} />
+                                        Preview as Customer
+                                    </button>
                                 </div>
                             </form>
+
+                            {/* Preview Modal */}
+                            {showPreview && (
+                                <ProductModal
+                                    isOpen={showPreview}
+                                    onClose={() => setShowPreview(false)}
+                                    product={{
+                                        name,
+                                        price: Number(price),
+                                        description: desc,
+                                        category,
+                                        inStock,
+                                        images: [...existingImages, ...imageFiles.map(f => URL.createObjectURL(f))]
+                                    }}
+                                />
+                            )}
                         </motion.div>
                     )}
 
